@@ -1,3 +1,4 @@
 test_params_create
 file.json
 **/__pycache__/
+main_delete.py
