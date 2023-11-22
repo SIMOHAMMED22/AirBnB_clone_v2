@@ -12,10 +12,10 @@ class State(BaseModel, Base):
     """ State class """
     __tablename__ = 'states'
 
-
     if type_storage == 'db':
         name = Column(String(128), nullable=False)
-        cities = relationship('City', backref="state",cascade='all, delete-orphan')
+        cities = relationship('City', backref="state",
+                              cascade='all, delete-orphan')
     else:
         @property
         def cities(self):
