@@ -1,9 +1,17 @@
 #!/usr/bin/python3
 """ Place Module for HBNB project """
 from models.base_model import BaseModel, Base
-from sqlalchemy import Column, String, ForeignKey, Integer, Float
+from sqlalchemy import Column, String, ForeignKey, Integer, Float, Table
 from sqlalchemy.orm import relationship
 from os import getenv
+
+place_amenity = Table('place_amenity', Base.metadata,
+                      Column('place_id', String(60),
+                             ForeignKey('places.id'), primary_key=True,
+                             nullable=False),
+                      Column('amenity_id', String(60),
+                             ForeignKey('amenities.id'), primary_key=True,
+                             nullable=False))
 
 
 class Place(BaseModel, Base):
@@ -23,6 +31,9 @@ class Place(BaseModel, Base):
         longitude = Column(Float)
         reviews = relationship('Review', backref='place',
                                cascade='all, delete-orphan')
+        amenities = relationship('Amenity', secondary=place_amenity,
+                                 viewonly=False,
+                                 back_populates="place_amenities")
 
     else:
         city_id = ""
@@ -47,3 +58,21 @@ class Place(BaseModel, Base):
                 if review.place_id == self.id:
                     ls.append(review)
             return ls
+
+        @property
+        def amenities(self):
+            """Getter attribute for amenities in FileStorage."""
+            from models import storage
+            from models.amenity import Amenity
+            ls = []
+            for amenity in storage.all(Amenity).values():
+                if amenity.id in self.amenity_ids:
+                    ls.append(amenity)
+            return ls
+
+        @amenities.setter
+        def amenities(self, obj):
+            """Setter attribute for amenities in FileStorage."""
+            from models.amenity import Amenity
+            if isinstance(obj, Amenity):
+                self.amenity_ids.append(obj.id)
