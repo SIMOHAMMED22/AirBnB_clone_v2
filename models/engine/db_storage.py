@@ -5,6 +5,12 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from os import getenv
 from models.base_model import Base
 
+from models.state import State
+from models.user import User
+from models.city import City
+from models.amenity import Amenity
+from models.place import Place
+from models.review import Review
 
 username = getenv('HBNB_MYSQL_USER')
 password = getenv('HBNB_MYSQL_PWD')
@@ -30,12 +36,6 @@ class DBStorage:
 
     def all(self, cls=None):
         """Query objects from the current database session."""
-        from models.state import State
-        from models.user import User
-        from models.city import City
-        from models.amenity import Amenity
-        from models.place import Place
-        from models.review import Review
         # print('all func was called')
         if cls is None:
             objs = self.__session.query(User, State, City,
