@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""2. Deploy archive!"""
+"""3. Full deployment"""
 from fabric.api import *
 import datetime
 import os
@@ -44,3 +44,12 @@ def do_deploy(archive_path):
 
     except Exception:
         return False
+
+
+def deploy():
+    """creates and distributes an archive to your web servers"""
+    archive_path = do_pack()
+    if archive_path is None:
+        return False
+    ret = do_deploy(archive_path)
+    return ret
