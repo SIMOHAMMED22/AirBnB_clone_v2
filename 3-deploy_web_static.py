@@ -6,7 +6,7 @@ from datetime import datetime
 from os.path import exists, splitext
 
 # Define target hosts
-env.hosts = ['100.25.142.90', '54.145.241.45']
+env.hosts = ['54.160.89.212', '52.23.177.189']
 
 
 @task
