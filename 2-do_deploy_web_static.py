@@ -1,59 +1,78 @@
 #!/usr/bin/python3
-"""Script to deploy web static"""
+"""
+script that distributes archive to webservers
+"""
+from fabric.api import put, run, env, local
+from datetime import datetime
+from os.path import exists
 
-from fabric.api import local, put, run, task, env
-from os.path import exists, splitext
 
-# Define target hosts
 env.hosts = ['54.160.89.212', '52.23.177.189']
+env.user = 'ubuntu'
 
 
-@task
 def do_pack():
-    """Archives the web_static folder."""
-    date = datetime.now().strftime("%Y%m%d%H%M%S")
-    mkdir = "mkdir -p versions"
-    path = "versions/web_static_{}.tgz".format(date)
-    print("Packing web_static to {}".format(path))
-    if local('{} && tar -cvzf {} web_static'.format(mkdir, path)).succeeded:
-        size = os.path.getsize(path)
-        print("web_static packed: {} -> {}Bytes".format(path, size))
-        return path
-    return None
+    """ generates a .tgz archive from the contents of the web_static
+
+    All files in the folder web_static must be added to the final archive.
+    All archives must be stored in the folder versions.
+    The name of the archive created must be:
+        web_static_<year><month><day><hour><minute><second>.tgz
+    The function do_pack must return the archive path if the archive has
+    been correctly generated. Otherwise, it should return None.
+
+    Returns:
+        fabric.operations._AttributeString: archive path.
+    """
+    now = datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # create folder versions if it doesn’t exist
+    local("mkdir -p versions")
+
+    # extract the contents of a tar archive
+    result = local(f"tar -czvf versions/web_static_{now}.tgz web_static")
+    if result.failed:
+        return None
+    else:
+        return result
 
 
-@task
 def do_deploy(archive_path):
-    """Deploys an archive to web servers."""
+    """distributes an archive to your web servers.
 
-    # Check if the archive exists
-    if not exists(archive_path):
+    Args:
+        archive_path (string): path to archive
+
+    Returns:
+        Boolean: whether the archive is distributed or not
+    """
+    if exists(archive_path) is False:
         return False
-
-    # Extract archive name and file name from path
-    archive_name = archive_path.split('/')[-1]
-    file_name_without_extension = splitext(archive_name)[0]
-
-    # Define remote paths
-    temp_remote_path = "/tmp/{}".format(archive_name)
-    release_remote_path = (
-            "/data/web_static/releases/{}"
-            .format(file_name_without_extension)
-            )
-
-    # Upload the archive to the remote server's temp directory
-    put(archive_path, '/tmp/')
-
-    # Deploy the archive
-    run('mkdir -p {}'.format(release_remote_path))
-    run('tar -xzf {} -C {}'.format(temp_remote_path, release_remote_path))
-    run('rm {}'.format(temp_remote_path))
-    run('mv {0}/web_static/* {0}/'.format(release_remote_path))
-    run('rm -rf {}/web_static'.format(release_remote_path))
-
-    # Update the symbolic link
-    run('rm -rf /data/web_static/current')
-    run('ln -s {} /data/web_static/current'.format(release_remote_path))
-
-    print("New version deployed!")
-    return True
+    try:
+        # upload the archive to the /tmp/ directory of the web server
+        put(archive_path, "/tmp/")
+        # Uncompress the archive to the folder,
+        # /data/web_static/releases/<archive filename without extension>
+        # on the web server
+        file_name = archive_path.split("/")[-1]
+        no_ext = ("/data/web_static/releases/" + file_name.split(".")[0])
+        # Create new directory for release
+        run("mkdir -p {}/".format(no_ext))
+        # Uncompress archive
+        run("tar -xzf /tmp/{} -C {}".format(file_name, no_ext))
+        # Delete the archive from the web server
+        run("rm /tmp/{}".format(file_name))
+        # Move extraction to proper directory
+        run("mv {0}/web_static/* {0}/".format(no_ext))
+        # Delete first copy of extraction after move
+        run("rm -rf {}/web_static".format(no_ext))
+        # Delete the symbolic link /data/web_static/current from the web server
+        run("rm -rf /data/web_static/current")
+        # Create new the symbolic link /data/web_static/current on web server,
+        # linked to the new version of your code,
+        # (/data/web_static/releases/<archive filename without extension>
+        run("ln -s {}/ /data/web_static/current".format(no_ext))
+        print("New version deployed!")
+        return True
+    except FileNotFoundError:
+        return False
