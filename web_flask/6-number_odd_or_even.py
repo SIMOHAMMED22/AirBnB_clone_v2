@@ -2,7 +2,7 @@
 """ script that starts a Flask web application. """
 
 
-from flask import Flask, render_template_string
+from flask import Flask, render_template
 
 app = Flask(__name__)
 
@@ -39,27 +39,18 @@ def display_number(n):
 @app.route('/number_template/<int:n>')
 def display_number_template(n):
     if isinstance(n, int):
-        template = f'<html><body><h1>Number: {n}</h1></body></html>'
-        return render_template_string(template)
+        return render_template("5-number.html", n=n)
 
 
 @app.route('/number_odd_or_even/<int:n>', strict_slashes=False)
 def display_number_odd_or_even(n):
     if isinstance(n, int):
         result = 'even' if n % 2 == 0 else 'odd'
-        template = (
-            f'<html><body><h1>'
-            f'Number: {n} is {result}'
-            f'</h1></body></html>'
-        )
-        return render_template_string(template)
+        return render_template("6-number_odd_or_even.html", n=n, ntyp=result)
 
 
 if __name__ == '__main__':
     app.run(
         host='0.0.0.0',
-        port=5000,
-        debug=True,
-        threaded=True,
-        ssl_context='adhoc'
+        port=5000
     )
